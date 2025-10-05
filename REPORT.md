@@ -10,7 +10,7 @@
 
 All tests **PASSED** successfully. The previously reported pytest hang issue has been **RESOLVED** in the local test environment. The test suite runs cleanly without timeouts and completes in approximately 2.74 seconds.
 
-**Docker Deployment:** The application has been successfully deployed using Docker Compose with PostgreSQL. The MCP recursion issue was confirmed in the production Docker environment but has been mitigated by disabling MCP (`ENABLE_MCP=0`). All API endpoints are fully functional via HTTP.
+**Docker Deployment:** The application has been successfully deployed using Docker Compose with PostgreSQL. The MCP integration is now **WORKING** with both HTTP and SSE transports using a separate simplified MCP server to avoid recursion issues. All API endpoints are fully functional.
 
 ---
 
@@ -261,10 +261,170 @@ The codebase is in a **healthy state** and ready for further development or depl
 
 ---
 
+## MCP Integration Testing
+
+### Overview
+
+The Model Context Protocol (MCP) integration has been successfully implemented using a **separate FastAPI application** with simplified schemas. This approach avoids the recursion issues that occur when fastapi-mcp processes the main API's complex nested Pydantic models.
+
+### Architecture
+
+```
+Main API (FastAPI)
+  ├── /auth/* - Full authentication endpoints
+  ├── /tasks/* - Full task management (complex nested schemas)
+  ├── /projects/* - Full project management
+  └── /mcp-api/* - MCP Server (mounted sub-application)
+       ├── /mcp-api/mcp - HTTP transport endpoint
+       ├── /mcp-api/sse - SSE transport endpoint
+       ├── /mcp-api/mcp/auth/register - Simplified auth (MCP tool)
+       ├── /mcp-api/mcp/auth/login - Simplified auth (MCP tool)
+       ├── /mcp-api/mcp/workspaces - Simplified workspace creation (MCP tool)
+       └── /mcp-api/mcp/health - Health check (MCP tool)
+```
+
+### Implementation Details
+
+**File:** `app/mcp_server.py`
+- Separate FastAPI application dedicated to MCP
+- Simplified Pydantic schemas without deep nesting
+- Avoids circular references (Task -> Project -> Workspace -> User)
+- Uses flat response models
+
+**File:** `app/main.py`
+- Mounts MCP app at `/mcp-api` using `app.mount()`
+- Conditional loading based on `ENABLE_MCP` environment variable
+- Graceful fallback if MCP initialization fails
+
+### Test Results
+
+#### HTTP Transport ✅
+
+**Endpoint:** `POST http://localhost:8000/mcp-api/mcp`
+
+**Initialization Request:**
+```bash
+curl -X POST http://localhost:8000/mcp-api/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"initialize",
+    "params":{
+      "protocolVersion":"2024-11-05",
+      "capabilities":{},
+      "clientInfo":{"name":"test-client","version":"1.0"}
+    }
+  }'
+```
+
+**Response:**
+```json
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {
+            "experimental": {},
+            "tools": {
+                "listChanged": false
+            }
+        },
+        "serverInfo": {
+            "name": "Asana Clone MCP",
+            "version": "Model Context Protocol interface for Asana Clone API"
+        }
+    }
+}
+```
+
+**Session Management:** ✅
+- Server returns `Mcp-Session-Id` header
+- Subsequent requests must include session ID
+- Stateful session management working correctly
+
+#### SSE Transport ✅
+
+**Endpoint:** `GET http://localhost:8000/mcp-api/sse`
+
+**Status:** Server-Sent Events transport mounted and accepting connections
+- Endpoint responds to SSE connection requests
+- Keeps connection open for streaming events
+- Compatible with MCP specification
+
+### Available MCP Tools
+
+The MCP server exposes the following simplified operations:
+
+| Operation ID | Path | Method | Description |
+|-------------|------|--------|-------------|
+| `mcp_register` | `/mcp-api/mcp/auth/register` | POST | User registration with simplified response |
+| `mcp_login` | `/mcp-api/mcp/auth/login` | POST | User login with token |
+| `mcp_create_workspace` | `/mcp-api/mcp/workspaces` | POST | Create workspace (flat schema) |
+| `mcp_health` | `/mcp-api/mcp/health` | GET | Health check endpoint |
+
+### Known Limitations
+
+1. **Limited Operations:** The MCP server only exposes a subset of the full API to avoid recursion issues
+2. **Simplified Schemas:** Response models are flattened (e.g., workspace returns only `id`, `name`, `owner_id` instead of nested owner object)
+3. **No Deep Nesting:** Operations that return deeply nested models (like Task with full Project/Workspace/User hierarchy) are not exposed via MCP
+
+### Recursion Issue Resolution
+
+**Root Cause:** The `fastapi-mcp` library's `resolve_schema_references()` function enters infinite recursion when processing OpenAPI schemas with circular or deeply nested Pydantic models.
+
+**Original Error:**
+```
+RecursionError: maximum recursion depth exceeded while calling a Python object
+  File "fastapi_mcp/openapi/utils.py", line 50, in resolve_schema_references
+```
+
+**Solution:** Create a separate FastAPI application with simplified, non-nested schemas specifically for MCP integration. This avoids the problematic schema resolution entirely.
+
+**Benefits:**
+- ✅ MCP integration works without modifying the main API
+- ✅ Full API functionality preserved at standard endpoints
+- ✅ Both HTTP and SSE transports functional
+- ✅ Clean separation of concerns
+- ✅ No impact on existing tests or deployment
+
+### Environment Configuration
+
+```bash
+# Enable MCP (default)
+ENABLE_MCP=1
+
+# Disable MCP
+ENABLE_MCP=0
+```
+
+### Verification Commands
+
+```bash
+# Test MCP HTTP endpoint
+curl http://localhost:8000/mcp-api/mcp/health
+
+# Test MCP initialization
+curl -X POST http://localhost:8000/mcp-api/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+
+# Check SSE transport
+curl -N -H "Accept: text/event-stream" http://localhost:8000/mcp-api/sse
+```
+
+---
+
 **Report Generated:** 2025-10-05
+**Last Updated:** 2025-10-05 14:05 UTC
+
 **Test Commands:**
 - Unit tests: `pytest tests/ -v --tb=short`
 - Docker deployment: `docker-compose up -d`
 - Migrations: `docker-compose exec api alembic upgrade head`
+- MCP health check: `curl http://localhost:8000/mcp-api/mcp/health`
 
-**Status:** ✅ ALL TESTS PASSING | ✅ DOCKER DEPLOYMENT SUCCESSFUL
+**Status:** ✅ ALL TESTS PASSING | ✅ DOCKER DEPLOYMENT SUCCESSFUL | ✅ MCP INTEGRATION WORKING

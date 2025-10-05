@@ -3,12 +3,7 @@ import logging
 import os
 
 from fastapi import FastAPI
-
-try:  # Optional dependency
-    from fastapi_mcp import FastApiMCP
-except ImportError:  # pragma: no cover - executed only when package missing
-    FastApiMCP = None
-
+from starlette.routing import Mount
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +21,23 @@ def read_root() -> dict[str, str]:
 
 enable_mcp = os.getenv("ENABLE_MCP", "1") not in {"0", "false", "False"}
 
-if FastApiMCP is not None and enable_mcp:
-    mcp = FastApiMCP(
-        app,
-        name="Asana Clone MCP",
-        description="Model Context Protocol interface for the Asana Clone API",
-    )
-    mcp.mount_http()
-    mcp.mount_sse()
-else:  # pragma: no cover - optional dependency missing in constrained environments
-    logger.info("fastapi-mcp unavailable or disabled; skipping MCP transport mounts.")
+if enable_mcp:
+    try:
+        # Use a separate MCP server with simplified schemas to avoid recursion issues
+        # The main API has deeply nested Pydantic models that cause infinite recursion
+        # in fastapi-mcp's OpenAPI schema resolver
+        from app.mcp_server import create_mcp_server
+
+        mcp_app = create_mcp_server()
+        if mcp_app:
+            # Mount the MCP app at /mcp-api
+            app.mount("/mcp-api", mcp_app)
+            logger.info("✓ MCP server mounted at /mcp-api with HTTP and SSE transports")
+        else:
+            logger.warning("✗ MCP server creation failed, continuing without MCP")
+    except ImportError:
+        logger.info("fastapi-mcp not available; skipping MCP integration")
+    except Exception as e:
+        logger.error(f"Unexpected error setting up MCP: {type(e).__name__}: {e}")
+else:
+    logger.info("MCP disabled via ENABLE_MCP environment variable")
