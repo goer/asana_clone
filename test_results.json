@@ -1,0 +1,134 @@
+{
+  "total_tests": 31,
+  "passed": 29,
+  "failed": 2,
+  "pass_rate": "93.5%",
+  "passed_tests": [
+    {
+      "test": "MCP Health Check",
+      "details": "Status: {'status': 'ok', 'api': 'mcp'}"
+    },
+    {
+      "test": "MCP User Registration",
+      "details": "User ID: 13"
+    },
+    {
+      "test": "MCP User Login",
+      "details": "Token received for mcp_login_test_1759675749.513815@example.com"
+    },
+    {
+      "test": "MCP Create Workspace",
+      "details": "Workspace ID: 8, Name: MCP Test Workspace 1759675750.102403"
+    },
+    {
+      "test": "HTTP User Registration",
+      "details": "User ID: 15"
+    },
+    {
+      "test": "HTTP User Login",
+      "details": "Logged in as http_login_1759675750.407507@example.com"
+    },
+    {
+      "test": "Workspace Create",
+      "details": "ID: 9"
+    },
+    {
+      "test": "Workspace Read",
+      "details": "Name: Test Workspace 1759675750.972521"
+    },
+    {
+      "test": "Workspace Update",
+      "details": "New name: Updated Workspace Name"
+    },
+    {
+      "test": "Workspace List",
+      "details": "Found 1 workspaces"
+    },
+    {
+      "test": "Project Create",
+      "details": "ID: 3"
+    },
+    {
+      "test": "Project Read",
+      "details": "Name: Test Project"
+    },
+    {
+      "test": "Project Update",
+      "details": "New name: Updated Project"
+    },
+    {
+      "test": "Project List",
+      "details": "Found 1 projects"
+    },
+    {
+      "test": "Task Create",
+      "details": "ID: 2"
+    },
+    {
+      "test": "Task Read",
+      "details": "Name: Test Task"
+    },
+    {
+      "test": "Task Update",
+      "details": "Completed: True"
+    },
+    {
+      "test": "Comment Create",
+      "details": "ID: 1"
+    },
+    {
+      "test": "Comment List",
+      "details": "Found 1 comments"
+    },
+    {
+      "test": "Comment Update",
+      "details": "Comment updated successfully"
+    },
+    {
+      "test": "Tag Create",
+      "details": "ID: 1"
+    },
+    {
+      "test": "Tag List",
+      "details": "Found 1 tags"
+    },
+    {
+      "test": "Section Create",
+      "details": "ID: 1"
+    },
+    {
+      "test": "Section List",
+      "details": "Found 1 sections"
+    },
+    {
+      "test": "Section Update",
+      "details": "Section updated successfully"
+    },
+    {
+      "test": "Team Create",
+      "details": "ID: 1"
+    },
+    {
+      "test": "Team List",
+      "details": "Found 1 teams"
+    },
+    {
+      "test": "Get Current User",
+      "details": "Email: http_test_1759675750.114813@example.com"
+    },
+    {
+      "test": "Get User by ID",
+      "details": "Name: HTTP Test User"
+    }
+  ],
+  "failed_tests": [
+    {
+      "test": "Task List",
+      "error": "Status: 422"
+    },
+    {
+      "test": "Tag Add to Task",
+      "error": "Status: 404"
+    }
+  ]
+}

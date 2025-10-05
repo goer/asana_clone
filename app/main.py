@@ -23,9 +23,7 @@ enable_mcp = os.getenv("ENABLE_MCP", "1") not in {"0", "false", "False"}
 
 if enable_mcp:
     try:
-        # Use a separate MCP server with simplified schemas to avoid recursion issues
-        # The main API has deeply nested Pydantic models that cause infinite recursion
-        # in fastapi-mcp's OpenAPI schema resolver
+        # Create MCP server with simplified schemas to avoid recursion issues
         from app.mcp_server import create_mcp_server
 
         mcp_app = create_mcp_server()
