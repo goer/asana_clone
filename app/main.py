@@ -30,11 +30,15 @@ if enable_mcp:
         # This follows the recommended approach for complex APIs with nested models
         mcp = create_mcp_server()
         if mcp:
-            # Mount using HTTP transport to the main app (recommended by fastapi-mcp)
-            # Per fastapi-mcp docs: mount_http(router) mounts to specified router/app
-            # We mount to the main app so MCP is available at /mcp
+            # Mount using both HTTP and SSE transports
+            # HTTP at /mcp (for JSON-RPC style clients)
             mcp.mount_http(app)
             logger.info("✓ MCP server mounted at /mcp using HTTP transport")
+
+            # SSE at /sse (recommended transport, better compatibility)
+            mcp.mount_sse(app)
+            logger.info("✓ MCP server mounted at /sse using SSE transport")
+
             logger.info("✓ All API endpoints exposed as MCP tools")
         else:
             logger.warning("✗ MCP server creation failed, continuing without MCP")

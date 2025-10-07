@@ -50,6 +50,7 @@ class UserLoginRequest(BaseModel):
     password: str
 
 class TokenResponse(BaseModel):
+    model_config = {"from_attributes": True}
     token: str
     user_id: int
     email: str
@@ -60,6 +61,7 @@ class WorkspaceCreateRequest(BaseModel):
     name: str
 
 class WorkspaceResponse(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     name: str
     owner_id: int
@@ -77,6 +79,7 @@ class ProjectCreateRequest(BaseModel):
     is_public: bool = True
 
 class ProjectResponse(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     name: str
     description: str | None
@@ -102,6 +105,7 @@ class TaskCreateRequest(BaseModel):
     completed: bool = False
 
 class TaskResponse(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     name: str
     description: str | None
@@ -129,6 +133,7 @@ class SectionCreateRequest(BaseModel):
     project_id: int
 
 class SectionResponse(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     name: str
     project_id: int
@@ -143,6 +148,7 @@ class CommentCreateRequest(BaseModel):
     content: str
 
 class CommentResponse(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     content: str
     task_id: int
@@ -160,12 +166,12 @@ class TagCreateRequest(BaseModel):
     color: str | None = None
 
 class TagResponse(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     name: str
     workspace_id: int
     color: str | None
     created_at: datetime
-    updated_at: datetime
 
 class TagUpdateRequest(BaseModel):
     name: str | None = None
@@ -178,6 +184,7 @@ class TeamCreateRequest(BaseModel):
     description: str | None = None
 
 class TeamResponse(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     name: str
     workspace_id: int
@@ -192,6 +199,7 @@ class AttachmentCreateRequest(BaseModel):
     file_size: int | None = None
 
 class AttachmentResponse(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     filename: str
     file_url: str
@@ -207,6 +215,7 @@ class CustomFieldCreateRequest(BaseModel):
     options: list[str] | None = None
 
 class CustomFieldResponse(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     name: str
     project_id: int
@@ -890,6 +899,8 @@ def create_mcp_server():
             describe_full_response_schema=False,
             # Only describe success responses
             describe_all_responses=False,
+            # Forward authentication headers to internal ASGI calls
+            headers=["X-API-Key", "X-Mcp-User"],
             # Add API key authentication
             auth_config=AuthConfig(
                 dependencies=[Depends(verify_api_key)],

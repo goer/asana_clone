@@ -50,7 +50,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
 
 
 async def get_mcp_user_context(
-    x_mcp_user: Optional[str] = Header(None),
+    x_mcp_user: Optional[str] = Header(None, alias="X-Mcp-User"),
     db: Session = Depends(get_db)
 ) -> Optional[User]:
     """
